@@ -1,9 +1,10 @@
 import Default from './layouts/default'
+import { FileCanvas } from '@/components/file-canvas'
 
 function App() {
   return (
     <Default>
-      <div>T-File</div>
+      <FileCanvas />
     </Default>
   )
 }
