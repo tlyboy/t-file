@@ -113,6 +113,7 @@ export function FileIcon({
       <ContextMenu onOpenChange={handleContextMenuChange}>
         <ContextMenuTrigger asChild>
           <div
+            data-file-icon
             onContextMenu={handleStopPropagation}
             onTouchStart={handleStopPropagation}
             className={cn(

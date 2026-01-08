@@ -31,6 +31,7 @@ export function FileCanvas() {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null)
   const [dragState, setDragState] = useState<DragState | null>(null)
   const [contextMenuPos, setContextMenuPos] = useState({ x: 50, y: 50 })
+  const [canvasMenuEnabled, setCanvasMenuEnabled] = useState(true)
   const canvasRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -228,6 +229,12 @@ export function FileCanvas() {
     ? files.find((f) => f.id === dragState.fileId)
     : null
 
+  // 检测点击目标，决定是否启用画布菜单
+  const handlePointerDownCapture = (e: React.PointerEvent) => {
+    const isOnFile = (e.target as HTMLElement).closest('[data-file-icon]')
+    setCanvasMenuEnabled(!isOnFile)
+  }
+
   // 右键菜单记录位置
   const handleContextMenu = (e: React.MouseEvent) => {
     const canvas = canvasRef.current
@@ -272,12 +279,13 @@ export function FileCanvas() {
       <ContextMenuTrigger asChild>
         <div
           ref={canvasRef}
+          onPointerDownCapture={handlePointerDownCapture}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onContextMenu={handleContextMenu}
           className={cn(
-            'relative w-full h-full min-h-screen',
+            'relative w-full h-full min-h-screen touch-manipulation',
             'transition-colors duration-200',
             isDragging && 'bg-primary/5',
             dragState && 'cursor-grabbing',
@@ -365,12 +373,14 @@ export function FileCanvas() {
 
     </div>
     </ContextMenuTrigger>
-    <ContextMenuContent>
-      <ContextMenuItem onClick={handleUploadClick}>
-        <Upload className="mr-2 size-4" />
-        上传文件
-      </ContextMenuItem>
-    </ContextMenuContent>
+    {canvasMenuEnabled && (
+      <ContextMenuContent>
+        <ContextMenuItem onClick={handleUploadClick}>
+          <Upload className="mr-2 size-4" />
+          上传文件
+        </ContextMenuItem>
+      </ContextMenuContent>
+    )}
   </ContextMenu>
   )
 }
