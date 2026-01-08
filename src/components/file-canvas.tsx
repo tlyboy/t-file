@@ -312,7 +312,7 @@ export function FileCanvas() {
         <div
           key={file.id}
           onMouseDown={(e) => handleFileMouseDown(e, file)}
-          onTouchStart={(e) => handleFileTouchStart(e, file)}
+          onTouchStartCapture={(e) => handleFileTouchStart(e, file)}
           className={cn(
             'absolute transform -translate-x-1/2 -translate-y-1/2',
             dragState?.fileId === file.id && 'opacity-30',
