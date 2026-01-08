@@ -5,6 +5,7 @@ export async function uploadFile(
   file: File,
   x: number,
   y: number,
+  onProgress?: (progress: number) => void,
 ): Promise<FileItem> {
   const apiBase = getApiUrlSnapshot()
   if (!apiBase) throw new Error('请先配置服务器地址')
@@ -14,17 +15,39 @@ export async function uploadFile(
   formData.append('x', x.toString())
   formData.append('y', y.toString())
 
-  const response = await fetch(`${apiBase}/v1/file`, {
-    method: 'POST',
-    body: formData,
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+
+    xhr.upload.addEventListener('progress', (e) => {
+      if (e.lengthComputable && onProgress) {
+        onProgress(Math.round((e.loaded / e.total) * 100))
+      }
+    })
+
+    xhr.addEventListener('load', () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText))
+        } catch {
+          reject(new Error('解析响应失败'))
+        }
+      } else {
+        try {
+          const error = JSON.parse(xhr.responseText)
+          reject(new Error(error.message || '上传失败'))
+        } catch {
+          reject(new Error('上传失败'))
+        }
+      }
+    })
+
+    xhr.addEventListener('error', () => {
+      reject(new Error('网络错误'))
+    })
+
+    xhr.open('POST', `${apiBase}/v1/file`)
+    xhr.send(formData)
   })
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
-    throw new Error(error.message || '上传失败')
-  }
-
-  return response.json()
 }
 
 export async function getFiles(): Promise<FileItem[]> {

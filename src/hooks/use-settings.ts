@@ -48,6 +48,30 @@ function subscribe(callback: () => void) {
   }
 }
 
+// 处理 URL 参数配置（只在初始化时执行一次）
+function initFromUrlParams() {
+  const params = new URLSearchParams(window.location.search)
+  const server = params.get('server')
+
+  if (server) {
+    // 保存服务器地址
+    const currentSettings = getSettings()
+    const newSettings = { ...currentSettings, server }
+    const json = JSON.stringify(newSettings)
+    localStorage.setItem(STORAGE_KEY, json)
+    cachedRaw = json
+    cachedSettings = newSettings
+
+    // 清除 URL 参数
+    const url = new URL(window.location.href)
+    url.searchParams.delete('server')
+    window.history.replaceState({}, '', url.toString())
+  }
+}
+
+// 立即执行 URL 参数处理
+initFromUrlParams()
+
 export function useSettings() {
   const settings = useSyncExternalStore(subscribe, getSettings, getSettings)
 

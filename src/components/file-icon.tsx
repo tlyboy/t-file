@@ -103,11 +103,17 @@ export function FileIcon({
     if (!open) lastDialogCloseTime = Date.now()
   }
 
+  // 阻止右键菜单事件冒泡，防止同时触发画布的菜单
+  const handleContextMenuCapture = (e: React.MouseEvent) => {
+    e.stopPropagation()
+  }
+
   return (
     <>
       <ContextMenu onOpenChange={handleContextMenuChange}>
         <ContextMenuTrigger asChild>
           <div
+            onContextMenu={handleContextMenuCapture}
             className={cn(
               'flex flex-col items-center gap-1 p-2 rounded-lg',
               'hover:bg-accent transition-colors cursor-grab active:cursor-grabbing select-none',

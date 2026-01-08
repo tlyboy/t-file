@@ -28,23 +28,23 @@ interface DragState {
 export function FileCanvas() {
   const { files, loading, removeFile, moveFile } = useFiles()
   const [isDragging, setIsDragging] = useState(false)
-  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null)
   const [dragState, setDragState] = useState<DragState | null>(null)
   const [contextMenuPos, setContextMenuPos] = useState({ x: 50, y: 50 })
   const canvasRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // 鼠标移动和释放事件（挂载到 document）
+  // 鼠标/触摸移动和释放事件（挂载到 document）
   useEffect(() => {
     if (!dragState) return
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMove = (clientX: number, clientY: number) => {
       setDragState((prev) =>
-        prev ? { ...prev, currentX: e.clientX, currentY: e.clientY } : null,
+        prev ? { ...prev, currentX: clientX, currentY: clientY } : null,
       )
     }
 
-    const handleMouseUp = async (e: MouseEvent) => {
+    const handleEnd = async (clientX: number, clientY: number) => {
       const canvas = canvasRef.current
       if (!canvas || !dragState) return
 
@@ -55,8 +55,8 @@ export function FileCanvas() {
       }
 
       const rect = canvas.getBoundingClientRect()
-      const x = ((e.clientX - rect.left) / rect.width) * 100
-      const y = ((e.clientY - rect.top) / rect.height) * 100
+      const x = ((clientX - rect.left) / rect.width) * 100
+      const y = ((clientY - rect.top) / rect.height) * 100
 
       const fileId = dragState.fileId
       setDragState(null)
@@ -69,12 +69,30 @@ export function FileCanvas() {
       }
     }
 
+    const handleMouseMove = (e: MouseEvent) => handleMove(e.clientX, e.clientY)
+    const handleMouseUp = (e: MouseEvent) => handleEnd(e.clientX, e.clientY)
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        e.preventDefault()
+        handleMove(e.touches[0].clientX, e.touches[0].clientY)
+      }
+    }
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (e.changedTouches.length === 1) {
+        handleEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
+      }
+    }
+
     document.addEventListener('mousemove', handleMouseMove)
     document.addEventListener('mouseup', handleMouseUp)
+    document.addEventListener('touchmove', handleTouchMove, { passive: false })
+    document.addEventListener('touchend', handleTouchEnd)
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseup', handleMouseUp)
+      document.removeEventListener('touchmove', handleTouchMove)
+      document.removeEventListener('touchend', handleTouchEnd)
     }
   }, [dragState, moveFile])
 
@@ -111,15 +129,15 @@ export function FileCanvas() {
     const droppedFiles = Array.from(e.dataTransfer.files)
     if (droppedFiles.length === 0) return
 
-    setUploading(true)
+    setUploadProgress(0)
     try {
       const file = droppedFiles[0]
-      await uploadFile(file, x, y)
+      await uploadFile(file, x, y, setUploadProgress)
     } catch (err) {
       console.error('上传失败:', err)
       alert(err instanceof Error ? err.message : '上传失败')
     } finally {
-      setUploading(false)
+      setUploadProgress(null)
     }
   }
 
@@ -170,6 +188,31 @@ export function FileCanvas() {
     e.preventDefault()
   }
 
+  // 文件拖拽开始（触摸事件）
+  const handleFileTouchStart = (e: React.TouchEvent, file: FileItem) => {
+    // 如果弹窗刚关闭，不启动拖拽
+    if (Date.now() - lastDialogCloseTime < 200) return
+
+    // 如果有弹窗或菜单打开，不启动拖拽
+    if (document.querySelector('[data-state="open"][role="dialog"]')) return
+    if (document.querySelector('[data-state="open"][role="alertdialog"]')) return
+    if (document.querySelector('[data-state="open"][role="menu"]')) return
+
+    if (e.touches.length !== 1) return
+
+    const touch = e.touches[0]
+    const target = e.currentTarget as HTMLElement
+    const rect = target.getBoundingClientRect()
+
+    setDragState({
+      fileId: file.id,
+      offsetX: touch.clientX - rect.left - rect.width / 2,
+      offsetY: touch.clientY - rect.top - rect.height / 2,
+      currentX: touch.clientX,
+      currentY: touch.clientY,
+    })
+  }
+
   // 计算拖拽中文件的位置
   const getDragPosition = () => {
     if (!dragState || !canvasRef.current) return null
@@ -206,14 +249,19 @@ export function FileCanvas() {
     const selectedFiles = e.target.files
     if (!selectedFiles || selectedFiles.length === 0) return
 
-    setUploading(true)
+    setUploadProgress(0)
     try {
-      await uploadFile(selectedFiles[0], contextMenuPos.x, contextMenuPos.y)
+      await uploadFile(
+        selectedFiles[0],
+        contextMenuPos.x,
+        contextMenuPos.y,
+        setUploadProgress,
+      )
     } catch (err) {
       console.error('上传失败:', err)
       alert(err instanceof Error ? err.message : '上传失败')
     } finally {
-      setUploading(false)
+      setUploadProgress(null)
       // 清空 input 以便再次选择同一文件
       e.target.value = ''
     }
@@ -244,10 +292,18 @@ export function FileCanvas() {
         </div>
       )}
 
-      {/* 上传中指示器 */}
-      {uploading && (
-        <div className="absolute top-4 right-4 z-50">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      {/* 上传进度 */}
+      {uploadProgress !== null && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-background/95 backdrop-blur border rounded-lg shadow-lg p-4 min-w-[200px]">
+          <div className="text-sm text-center mb-2">
+            上传中 {uploadProgress}%
+          </div>
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
+            <div
+              className="h-full bg-primary transition-all duration-150"
+              style={{ width: `${uploadProgress}%` }}
+            />
+          </div>
         </div>
       )}
 
@@ -256,6 +312,7 @@ export function FileCanvas() {
         <div
           key={file.id}
           onMouseDown={(e) => handleFileMouseDown(e, file)}
+          onTouchStart={(e) => handleFileTouchStart(e, file)}
           className={cn(
             'absolute transform -translate-x-1/2 -translate-y-1/2',
             dragState?.fileId === file.id && 'opacity-30',
