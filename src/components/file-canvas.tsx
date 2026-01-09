@@ -435,8 +435,16 @@ export function FileCanvas() {
 
       {/* 空状态 */}
       {!loading && files.length === 0 && !isDragging && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none gap-2">
           <p className="text-muted-foreground">拖拽文件到任意位置以分享</p>
+          {/* PC 端提示 */}
+          <p className="hidden md:block text-muted-foreground/60 text-sm">
+            右键空白处上传 · 右键文件查看菜单 · 拖动文件移动位置
+          </p>
+          {/* 移动端提示 */}
+          <p className="md:hidden text-muted-foreground/60 text-sm">
+            长按空白处上传 · 长按文件查看菜单 · 拖动文件移动位置
+          </p>
         </div>
       )}
 
