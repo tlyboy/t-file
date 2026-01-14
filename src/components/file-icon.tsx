@@ -136,18 +136,18 @@ export function FileIcon({
             onContextMenu={handleStopPropagation}
             onTouchStart={handleStopPropagation}
             className={cn(
-              'flex flex-col items-center gap-1 p-2 rounded-lg',
-              'hover:bg-accent transition-colors cursor-grab active:cursor-grabbing select-none',
-              'max-w-[100px] group',
+              'flex flex-col items-center gap-1 rounded-lg p-2',
+              'hover:bg-accent cursor-grab transition-colors select-none active:cursor-grabbing',
+              'group max-w-[100px]',
               className,
             )}
             title={`${file.originalName}\n${formatFileSize(file.size)}`}
           >
-            <Icon className="size-12 text-primary group-hover:scale-110 transition-transform" />
-            <span className="text-xs text-center truncate w-full">
+            <Icon className="text-primary size-12 transition-transform group-hover:scale-110" />
+            <span className="w-full truncate text-center text-xs">
               {file.originalName}
             </span>
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-muted-foreground text-[10px]">
               {formatFileSize(file.size)}
             </span>
           </div>
@@ -186,7 +186,7 @@ export function FileIcon({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 text-sm">
-            <div className="grid grid-cols-[4em_1fr] gap-2 items-baseline">
+            <div className="grid grid-cols-[4em_1fr] items-baseline gap-2">
               <span className="text-muted-foreground">文件名</span>
               <span className="font-medium break-all">{file.originalName}</span>
             </div>
@@ -207,7 +207,10 @@ export function FileIcon({
       </Dialog>
 
       {/* 删除确认弹窗 */}
-      <AlertDialog open={showDeleteConfirm} onOpenChange={handleDeleteConfirmChange}>
+      <AlertDialog
+        open={showDeleteConfirm}
+        onOpenChange={handleDeleteConfirmChange}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除</AlertDialogTitle>

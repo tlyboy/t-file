@@ -44,7 +44,11 @@ export function useFiles() {
 
       case 'file:moved':
         updateFiles((draft) => {
-          const payload = message.payload as { id: number; x: number; y: number }
+          const payload = message.payload as {
+            id: number
+            x: number
+            y: number
+          }
           const file = draft.find((f) => f.id === payload.id)
           if (file) {
             file.x = payload.x

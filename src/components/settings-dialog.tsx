@@ -51,7 +51,9 @@ export function SettingsDialog({
     <Dialog open={open} onOpenChange={allowClose ? onOpenChange : undefined}>
       <DialogContent
         className="sm:max-w-md"
-        onPointerDownOutside={allowClose ? undefined : (e) => e.preventDefault()}
+        onPointerDownOutside={
+          allowClose ? undefined : (e) => e.preventDefault()
+        }
         onEscapeKeyDown={allowClose ? undefined : (e) => e.preventDefault()}
       >
         <DialogHeader>

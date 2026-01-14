@@ -4,7 +4,10 @@ import { getWsUrlSnapshot } from './use-settings'
 
 type MessageHandler = (message: WSMessage) => void
 
-export function useWebSocket(onMessage: MessageHandler, enabled: boolean = true) {
+export function useWebSocket(
+  onMessage: MessageHandler,
+  enabled: boolean = true,
+) {
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimeoutRef = useRef<number | undefined>(undefined)
   const isUnmountedRef = useRef(false)

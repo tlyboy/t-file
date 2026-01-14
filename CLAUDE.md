@@ -24,17 +24,27 @@ pnpm preview  # Preview production build
 **Path Aliases**: `@/*` maps to `./src/*`
 
 **Project Structure**:
+
 - `src/components/ui/` - shadcn/ui components (add via `npx shadcn@latest add <component>`)
 - `src/components/` - Custom components (theme-provider, mode-toggle)
 - `src/layouts/` - Layout components wrapping ThemeProvider
 - `src/lib/utils.ts` - `cn()` helper for merging Tailwind classes
 
 **Styling**:
+
 - Tailwind v4 with CSS variables for theming (defined in `src/index.css`)
 - Uses `oklch` color space for all theme colors
 - Dark mode via `.dark` class on `<html>` (managed by ThemeProvider)
 - View transitions enabled for theme switching
 
 **State Management**:
+
 - `useTheme()` hook from `@/components/theme-provider` for theme access
 - Theme persisted to localStorage with key `vite-ui-theme`
+
+**React Compiler**:
+
+- This project uses `babel-plugin-react-compiler` for automatic optimization
+- **DO NOT** manually write `useMemo`, `useCallback`, or `React.memo` wrappers
+- The React Compiler automatically memoizes components and values as needed
+- Focus on writing clear, readable code - let the compiler handle performance optimization

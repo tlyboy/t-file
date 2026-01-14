@@ -132,7 +132,9 @@ export function FileCanvas() {
       if (dragState) {
         e.preventDefault()
         setDragState((prev) =>
-          prev ? { ...prev, currentX: touch.clientX, currentY: touch.clientY } : null,
+          prev
+            ? { ...prev, currentX: touch.clientX, currentY: touch.clientY }
+            : null,
         )
       }
     }
@@ -279,7 +281,8 @@ export function FileCanvas() {
 
     // 如果有弹窗或菜单打开，不启动拖拽
     if (document.querySelector('[data-state="open"][role="dialog"]')) return
-    if (document.querySelector('[data-state="open"][role="alertdialog"]')) return
+    if (document.querySelector('[data-state="open"][role="alertdialog"]'))
+      return
     if (document.querySelector('[data-state="open"][role="menu"]')) return
 
     const target = e.currentTarget as HTMLElement
@@ -305,7 +308,8 @@ export function FileCanvas() {
 
     // 如果有弹窗或菜单打开，不启动拖拽准备
     if (document.querySelector('[data-state="open"][role="dialog"]')) return
-    if (document.querySelector('[data-state="open"][role="alertdialog"]')) return
+    if (document.querySelector('[data-state="open"][role="alertdialog"]'))
+      return
     if (document.querySelector('[data-state="open"][role="menu"]')) return
 
     const touch = e.touches[0]
@@ -343,7 +347,9 @@ export function FileCanvas() {
     const isOnDialog = target.closest('[role="dialog"]')
     const isOnAlertDialog = target.closest('[role="alertdialog"]')
     // 点击在文件、菜单或对话框上时，禁用画布菜单
-    setCanvasMenuEnabled(!isOnFile && !isOnMenu && !isOnDialog && !isOnAlertDialog)
+    setCanvasMenuEnabled(
+      !isOnFile && !isOnMenu && !isOnDialog && !isOnAlertDialog,
+    )
   }
 
   // 右键菜单记录位置
@@ -396,111 +402,112 @@ export function FileCanvas() {
           onDrop={handleDrop}
           onContextMenu={handleContextMenu}
           className={cn(
-            'relative w-full h-full min-h-screen touch-manipulation select-none',
+            'relative h-full min-h-screen w-full touch-manipulation select-none',
             'transition-colors duration-200',
             isDragging && 'bg-primary/5',
             dragState && 'cursor-grabbing',
           )}
           style={{ WebkitTouchCallout: 'none' }}
         >
-      {/* 拖拽上传提示 */}
-      {isDragging && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
-          <div className="border-2 border-dashed border-primary rounded-xl p-12 bg-background/80 backdrop-blur">
-            <p className="text-lg font-medium text-primary">松开以上传文件</p>
-          </div>
-        </div>
-      )}
-
-      {/* 上传进度 */}
-      {uploadProgress !== null && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-background/95 backdrop-blur border rounded-lg shadow-lg p-4 min-w-[200px]">
-          <div className="text-sm text-center mb-2">
-            上传中 {uploadProgress}%
-          </div>
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary transition-all duration-150"
-              style={{ width: `${uploadProgress}%` }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* 文件展示 */}
-      {files.map((file) => (
-        <div
-          key={file.id}
-          onMouseDown={(e) => handleFileMouseDown(e, file)}
-          onTouchStartCapture={(e) => handleFileTouchStart(e, file)}
-          className={cn(
-            'absolute transform -translate-x-1/2 -translate-y-1/2',
-            dragState?.fileId === file.id && 'opacity-30',
+          {/* 拖拽上传提示 */}
+          {isDragging && (
+            <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center">
+              <div className="border-primary bg-background/80 rounded-xl border-2 border-dashed p-12 backdrop-blur">
+                <p className="text-primary text-lg font-medium">
+                  松开以上传文件
+                </p>
+              </div>
+            </div>
           )}
-          style={{
-            left: `${file.x}%`,
-            top: `${file.y}%`,
-          }}
-        >
-          <FileIcon
-            file={file}
-            onDownload={() => handleDownload(file)}
-            onDelete={() => handleDelete(file)}
+
+          {/* 上传进度 */}
+          {uploadProgress !== null && (
+            <div className="bg-background/95 fixed bottom-6 left-1/2 z-50 min-w-[200px] -translate-x-1/2 rounded-lg border p-4 shadow-lg backdrop-blur">
+              <div className="mb-2 text-center text-sm">
+                上传中 {uploadProgress}%
+              </div>
+              <div className="bg-muted h-2 overflow-hidden rounded-full">
+                <div
+                  className="bg-primary h-full transition-all duration-150"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* 文件展示 */}
+          {files.map((file) => (
+            <div
+              key={file.id}
+              onMouseDown={(e) => handleFileMouseDown(e, file)}
+              onTouchStartCapture={(e) => handleFileTouchStart(e, file)}
+              className={cn(
+                'absolute -translate-x-1/2 -translate-y-1/2 transform',
+                dragState?.fileId === file.id && 'opacity-30',
+              )}
+              style={{
+                left: `${file.x}%`,
+                top: `${file.y}%`,
+              }}
+            >
+              <FileIcon
+                file={file}
+                onDownload={() => handleDownload(file)}
+                onDelete={() => handleDelete(file)}
+              />
+            </div>
+          ))}
+
+          {/* 拖拽中的文件（跟随鼠标） */}
+          {draggingFile && dragPosition && (
+            <div
+              className="pointer-events-none absolute z-50 -translate-x-1/2 -translate-y-1/2 transform"
+              style={{
+                left: dragPosition.left,
+                top: dragPosition.top,
+              }}
+            >
+              <FileIcon
+                file={draggingFile}
+                onDownload={() => {}}
+                onDelete={() => {}}
+                className="scale-110"
+              />
+            </div>
+          )}
+
+          {/* 空状态 */}
+          {!loading && files.length === 0 && !isDragging && (
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2">
+              <p className="text-muted-foreground">拖拽文件到任意位置以分享</p>
+              {/* PC 端提示 */}
+              <p className="text-muted-foreground/60 hidden text-sm md:block">
+                右键空白处上传 · 右键文件查看菜单 · 拖动文件移动位置
+              </p>
+              {/* 移动端提示 */}
+              <p className="text-muted-foreground/60 text-sm md:hidden">
+                长按空白处上传 · 长按文件查看菜单 · 拖动文件移动位置
+              </p>
+            </div>
+          )}
+
+          {/* 隐藏的文件选择器 */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={handleFileSelect}
           />
         </div>
-      ))}
-
-      {/* 拖拽中的文件（跟随鼠标） */}
-      {draggingFile && dragPosition && (
-        <div
-          className="absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-50"
-          style={{
-            left: dragPosition.left,
-            top: dragPosition.top,
-          }}
-        >
-          <FileIcon
-            file={draggingFile}
-            onDownload={() => {}}
-            onDelete={() => {}}
-            className="scale-110"
-          />
-        </div>
+      </ContextMenuTrigger>
+      {canvasMenuEnabled && (
+        <ContextMenuContent>
+          <ContextMenuItem onClick={handleUploadClick}>
+            <Upload className="mr-2 size-4" />
+            上传文件
+          </ContextMenuItem>
+        </ContextMenuContent>
       )}
-
-      {/* 空状态 */}
-      {!loading && files.length === 0 && !isDragging && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none gap-2">
-          <p className="text-muted-foreground">拖拽文件到任意位置以分享</p>
-          {/* PC 端提示 */}
-          <p className="hidden md:block text-muted-foreground/60 text-sm">
-            右键空白处上传 · 右键文件查看菜单 · 拖动文件移动位置
-          </p>
-          {/* 移动端提示 */}
-          <p className="md:hidden text-muted-foreground/60 text-sm">
-            长按空白处上传 · 长按文件查看菜单 · 拖动文件移动位置
-          </p>
-        </div>
-      )}
-
-      {/* 隐藏的文件选择器 */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        className="hidden"
-        onChange={handleFileSelect}
-      />
-
-    </div>
-    </ContextMenuTrigger>
-    {canvasMenuEnabled && (
-      <ContextMenuContent>
-        <ContextMenuItem onClick={handleUploadClick}>
-          <Upload className="mr-2 size-4" />
-          上传文件
-        </ContextMenuItem>
-      </ContextMenuContent>
-    )}
-  </ContextMenu>
+    </ContextMenu>
   )
 }
