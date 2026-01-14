@@ -14,6 +14,7 @@ import {
   Download,
   Info,
   Trash2,
+  Link,
 } from 'lucide-react'
 import {
   ContextMenu,
@@ -41,6 +42,7 @@ import {
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import type { FileItem } from '@/types/file'
+import { getApiUrlSnapshot } from '@/hooks/use-settings'
 
 function getFileIcon(mimeType: string) {
   if (mimeType.startsWith('image/')) return FileImage
@@ -88,6 +90,7 @@ export function FileIcon({
   const Icon = getFileIcon(file.mimeType)
   const [showDetail, setShowDetail] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [copySuccess, setCopySuccess] = useState(false)
 
   const handleDetailChange = (open: boolean) => {
     setShowDetail(open)
@@ -106,6 +109,22 @@ export function FileIcon({
   // 阻止事件冒泡，防止同时触发画布的菜单
   const handleStopPropagation = (e: React.SyntheticEvent) => {
     e.stopPropagation()
+  }
+
+  // 复制分享链接
+  const handleCopyShareLink = async () => {
+    try {
+      const currentUrl = window.location.origin
+      const server = new URL(getApiUrlSnapshot()).host
+      const shareUrl = `${currentUrl}?server=${encodeURIComponent(server)}&fileId=${file.id}`
+
+      await navigator.clipboard.writeText(shareUrl)
+      setCopySuccess(true)
+      setTimeout(() => setCopySuccess(false), 2000)
+    } catch (err) {
+      console.error('复制失败:', err)
+      alert('复制失败，请手动复制')
+    }
   }
 
   return (
@@ -137,6 +156,10 @@ export function FileIcon({
           <ContextMenuItem onClick={() => setShowDetail(true)}>
             <Info className="mr-2 size-4" />
             详情
+          </ContextMenuItem>
+          <ContextMenuItem onClick={handleCopyShareLink}>
+            <Link className="mr-2 size-4" />
+            {copySuccess ? '已复制！' : '复制分享链接'}
           </ContextMenuItem>
           <ContextMenuItem onClick={onDownload}>
             <Download className="mr-2 size-4" />

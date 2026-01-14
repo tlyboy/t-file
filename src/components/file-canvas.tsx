@@ -8,6 +8,10 @@ import {
   deleteFile,
 } from '@/lib/api'
 import {
+  getPendingDownloadId,
+  clearPendingDownloadId,
+} from '@/hooks/use-settings'
+import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
@@ -173,6 +177,32 @@ export function FileCanvas() {
       document.removeEventListener('touchend', handleTouchEnd)
     }
   }, [dragState, pendingDrag, moveFile])
+
+  // 自动下载：检查 URL 参数中的 fileId
+  useEffect(() => {
+    if (loading || files.length === 0) return
+
+    const pendingId = getPendingDownloadId()
+    if (!pendingId) return
+
+    const fileId = parseInt(pendingId, 10)
+    if (isNaN(fileId)) {
+      clearPendingDownloadId()
+      return
+    }
+
+    const targetFile = files.find((f) => f.id === fileId)
+    if (targetFile) {
+      // 延迟 500ms 执行，确保 UI 已完全加载
+      setTimeout(() => {
+        handleDownload(targetFile)
+        clearPendingDownloadId()
+      }, 500)
+    } else {
+      // 文件不存在，清除标记
+      clearPendingDownloadId()
+    }
+  }, [loading, files])
 
   // 外部文件拖入（上传）
   const handleDragOver = (e: React.DragEvent) => {

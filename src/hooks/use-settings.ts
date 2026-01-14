@@ -52,6 +52,7 @@ function subscribe(callback: () => void) {
 function initFromUrlParams() {
   const params = new URLSearchParams(window.location.search)
   const server = params.get('server')
+  const fileId = params.get('fileId')
 
   if (server) {
     // 保存服务器地址
@@ -61,10 +62,18 @@ function initFromUrlParams() {
     localStorage.setItem(STORAGE_KEY, json)
     cachedRaw = json
     cachedSettings = newSettings
+  }
 
-    // 清除 URL 参数
+  if (fileId) {
+    // 保存待下载的文件 ID 到 sessionStorage
+    sessionStorage.setItem('t-file-pending-download', fileId)
+  }
+
+  // 清除 URL 参数
+  if (server || fileId) {
     const url = new URL(window.location.href)
-    url.searchParams.delete('server')
+    if (server) url.searchParams.delete('server')
+    if (fileId) url.searchParams.delete('fileId')
     window.history.replaceState({}, '', url.toString())
   }
 }
@@ -125,4 +134,14 @@ export function getWsUrlSnapshot(): string {
   if (!server) return ''
   const protocol = settings.devMode ? 'ws' : 'wss'
   return `${protocol}://${server}/_ws`
+}
+
+// 获取待下载的文件 ID
+export function getPendingDownloadId(): string | null {
+  return sessionStorage.getItem('t-file-pending-download')
+}
+
+// 清除待下载的文件 ID
+export function clearPendingDownloadId(): void {
+  sessionStorage.removeItem('t-file-pending-download')
 }
