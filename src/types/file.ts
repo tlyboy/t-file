@@ -6,6 +6,7 @@ export interface FileItem {
   size: number
   x: number
   y: number
+  hasPickupCode: boolean
   createdAt: string
 }
 

@@ -15,6 +15,7 @@ import {
   Info,
   Trash2,
   Link,
+  Lock,
 } from 'lucide-react'
 import {
   ContextMenu,
@@ -143,7 +144,12 @@ export function FileIcon({
             )}
             title={`${file.originalName}\n${formatFileSize(file.size)}`}
           >
-            <Icon className="text-primary size-12 transition-transform group-hover:scale-110" />
+            <div className="relative">
+              <Icon className="text-primary size-12 transition-transform group-hover:scale-110" />
+              {!!file.hasPickupCode && (
+                <Lock className="absolute -right-1 -top-1 size-4 text-amber-500" />
+              )}
+            </div>
             <span className="w-full truncate text-center text-xs">
               {file.originalName}
             </span>
@@ -201,6 +207,10 @@ export function FileIcon({
             <div className="grid grid-cols-[4em_1fr] gap-2">
               <span className="text-muted-foreground">上传时间</span>
               <span>{formatDate(file.createdAt)}</span>
+            </div>
+            <div className="grid grid-cols-[4em_1fr] gap-2">
+              <span className="text-muted-foreground">取件码</span>
+              <span>{file.hasPickupCode ? '已设置' : '无'}</span>
             </div>
           </div>
         </DialogContent>

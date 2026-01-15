@@ -6,6 +6,7 @@ export async function uploadFile(
   x: number,
   y: number,
   onProgress?: (progress: number) => void,
+  pickupCode?: string,
 ): Promise<FileItem> {
   const apiBase = getApiUrlSnapshot()
   if (!apiBase) throw new Error('请先配置服务器地址')
@@ -14,6 +15,9 @@ export async function uploadFile(
   formData.append('file', file)
   formData.append('x', x.toString())
   formData.append('y', y.toString())
+  if (pickupCode) {
+    formData.append('pickupCode', pickupCode)
+  }
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
@@ -63,9 +67,31 @@ export async function getFiles(): Promise<FileItem[]> {
   return response.json()
 }
 
-export function getDownloadUrl(id: number): string {
+export function getDownloadUrl(id: number, pickupCode?: string): string {
   const apiBase = getApiUrlSnapshot()
-  return `${apiBase}/v1/file/download/${id}`
+  const url = `${apiBase}/v1/file/download/${id}`
+  return pickupCode ? `${url}?code=${encodeURIComponent(pickupCode)}` : url
+}
+
+export async function verifyPickupCode(
+  id: number,
+  pickupCode: string,
+): Promise<{ valid: boolean }> {
+  const apiBase = getApiUrlSnapshot()
+  if (!apiBase) throw new Error('请先配置服务器地址')
+
+  const response = await fetch(`${apiBase}/v1/file/verify/${id}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pickupCode }),
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.message || '验证失败')
+  }
+
+  return response.json()
 }
 
 export async function updateFilePosition(

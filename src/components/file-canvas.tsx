@@ -18,6 +18,8 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
 import { FileIcon, lastDialogCloseTime } from './file-icon'
+import { UploadDialog } from './upload-dialog'
+import { PickupCodeDialog } from './pickup-code-dialog'
 import { cn } from '@/lib/utils'
 import type { FileItem } from '@/types/file'
 
@@ -40,6 +42,12 @@ interface PendingDrag {
 // 移动距离阈值（px）
 const DRAG_THRESHOLD = 10
 
+interface PendingUpload {
+  file: File
+  x: number
+  y: number
+}
+
 export function FileCanvas() {
   const { files, loading, removeFile, moveFile } = useFiles()
   const [isDragging, setIsDragging] = useState(false)
@@ -50,6 +58,14 @@ export function FileCanvas() {
   const [canvasMenuEnabled, setCanvasMenuEnabled] = useState(true)
   const canvasRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // 上传弹窗状态
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
+  const [pendingUpload, setPendingUpload] = useState<PendingUpload | null>(null)
+
+  // 取件码验证弹窗状态
+  const [pickupCodeDialogOpen, setPickupCodeDialogOpen] = useState(false)
+  const [pendingDownload, setPendingDownload] = useState<FileItem | null>(null)
 
   // 鼠标移动和释放事件（挂载到 document）
   useEffect(() => {
@@ -224,7 +240,7 @@ export function FileCanvas() {
     }
   }
 
-  const handleDrop = async (e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
     setIsDragging(false)
@@ -239,27 +255,62 @@ export function FileCanvas() {
     const droppedFiles = Array.from(e.dataTransfer.files)
     if (droppedFiles.length === 0) return
 
+    // 打开上传弹窗
+    setPendingUpload({ file: droppedFiles[0], x, y })
+    setUploadDialogOpen(true)
+  }
+
+  const handleDownload = (file: FileItem) => {
+    if (file.hasPickupCode) {
+      // 需要取件码，打开验证弹窗
+      setPendingDownload(file)
+      setPickupCodeDialogOpen(true)
+    } else {
+      // 无需取件码，直接下载
+      executeDownload(file)
+    }
+  }
+
+  const executeDownload = (file: FileItem, pickupCode?: string) => {
+    removeFile(file.id)
+
+    const link = document.createElement('a')
+    link.href = getDownloadUrl(file.id, pickupCode)
+    link.download = file.originalName
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const handlePickupCodeSuccess = (pickupCode: string) => {
+    if (!pendingDownload) return
+
+    setPickupCodeDialogOpen(false)
+    executeDownload(pendingDownload, pickupCode)
+    setPendingDownload(null)
+  }
+
+  const handleUploadConfirm = async (pickupCode?: string) => {
+    if (!pendingUpload) return
+
+    setUploadDialogOpen(false)
     setUploadProgress(0)
+
     try {
-      const file = droppedFiles[0]
-      await uploadFile(file, x, y, setUploadProgress)
+      await uploadFile(
+        pendingUpload.file,
+        pendingUpload.x,
+        pendingUpload.y,
+        setUploadProgress,
+        pickupCode,
+      )
     } catch (err) {
       console.error('上传失败:', err)
       alert(err instanceof Error ? err.message : '上传失败')
     } finally {
       setUploadProgress(null)
+      setPendingUpload(null)
     }
-  }
-
-  const handleDownload = (file: FileItem) => {
-    removeFile(file.id)
-
-    const link = document.createElement('a')
-    link.href = getDownloadUrl(file.id)
-    link.download = file.originalName
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
   }
 
   const handleDelete = async (file: FileItem) => {
@@ -368,27 +419,21 @@ export function FileCanvas() {
     fileInputRef.current?.click()
   }
 
-  // 文件选择后上传
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // 文件选择后打开上传弹窗
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = e.target.files
     if (!selectedFiles || selectedFiles.length === 0) return
 
-    setUploadProgress(0)
-    try {
-      await uploadFile(
-        selectedFiles[0],
-        contextMenuPos.x,
-        contextMenuPos.y,
-        setUploadProgress,
-      )
-    } catch (err) {
-      console.error('上传失败:', err)
-      alert(err instanceof Error ? err.message : '上传失败')
-    } finally {
-      setUploadProgress(null)
-      // 清空 input 以便再次选择同一文件
-      e.target.value = ''
-    }
+    // 打开上传弹窗
+    setPendingUpload({
+      file: selectedFiles[0],
+      x: contextMenuPos.x,
+      y: contextMenuPos.y,
+    })
+    setUploadDialogOpen(true)
+
+    // 清空 input 以便再次选择同一文件
+    e.target.value = ''
   }
 
   return (
@@ -508,6 +553,22 @@ export function FileCanvas() {
           </ContextMenuItem>
         </ContextMenuContent>
       )}
+
+      {/* 上传弹窗 */}
+      <UploadDialog
+        open={uploadDialogOpen}
+        onOpenChange={setUploadDialogOpen}
+        file={pendingUpload?.file ?? null}
+        onConfirm={handleUploadConfirm}
+      />
+
+      {/* 取件码验证弹窗 */}
+      <PickupCodeDialog
+        open={pickupCodeDialogOpen}
+        onOpenChange={setPickupCodeDialogOpen}
+        file={pendingDownload}
+        onSuccess={handlePickupCodeSuccess}
+      />
     </ContextMenu>
   )
 }
