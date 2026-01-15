@@ -10,6 +10,8 @@ import {
 import {
   getPendingDownloadId,
   clearPendingDownloadId,
+  getPendingDownloadCode,
+  clearPendingDownloadCode,
 } from '@/hooks/use-settings'
 import {
   ContextMenu,
@@ -20,6 +22,7 @@ import {
 import { FileIcon, lastDialogCloseTime } from './file-icon'
 import { UploadDialog } from './upload-dialog'
 import { PickupCodeDialog } from './pickup-code-dialog'
+import { UploadSuccessDialog } from './upload-success-dialog'
 import { cn } from '@/lib/utils'
 import type { FileItem } from '@/types/file'
 
@@ -66,6 +69,11 @@ export function FileCanvas() {
   // 取件码验证弹窗状态
   const [pickupCodeDialogOpen, setPickupCodeDialogOpen] = useState(false)
   const [pendingDownload, setPendingDownload] = useState<FileItem | null>(null)
+
+  // 上传成功弹窗状态
+  const [uploadSuccessDialogOpen, setUploadSuccessDialogOpen] = useState(false)
+  const [uploadedFile, setUploadedFile] = useState<FileItem | null>(null)
+  const [uploadedPickupCode, setUploadedPickupCode] = useState<string | undefined>()
 
   // 鼠标移动和释放事件（挂载到 document）
   useEffect(() => {
@@ -196,7 +204,7 @@ export function FileCanvas() {
     }
   }, [dragState, pendingDrag, moveFile])
 
-  // 自动下载：检查 URL 参数中的 fileId
+  // 自动下载：检查 URL 参数中的 fileId 和 code
   useEffect(() => {
     if (loading || files.length === 0) return
 
@@ -206,19 +214,29 @@ export function FileCanvas() {
     const fileId = parseInt(pendingId, 10)
     if (isNaN(fileId)) {
       clearPendingDownloadId()
+      clearPendingDownloadCode()
       return
     }
 
     const targetFile = files.find((f) => f.id === fileId)
     if (targetFile) {
+      const pendingCode = getPendingDownloadCode()
       // 延迟 500ms 执行，确保 UI 已完全加载
       setTimeout(() => {
-        handleDownload(targetFile)
+        if (targetFile.hasPickupCode && pendingCode) {
+          // 带取件码的链接，直接下载
+          executeDownload(targetFile, pendingCode)
+        } else {
+          // 无取件码或链接中没有提供取件码，走正常流程
+          handleDownload(targetFile)
+        }
         clearPendingDownloadId()
+        clearPendingDownloadCode()
       }, 500)
     } else {
       // 文件不存在，清除标记
       clearPendingDownloadId()
+      clearPendingDownloadCode()
     }
   }, [loading, files])
 
@@ -297,13 +315,17 @@ export function FileCanvas() {
     setUploadProgress(0)
 
     try {
-      await uploadFile(
+      const result = await uploadFile(
         pendingUpload.file,
         pendingUpload.x,
         pendingUpload.y,
         setUploadProgress,
         pickupCode,
       )
+      // 上传成功，打开分享弹窗
+      setUploadedFile(result)
+      setUploadedPickupCode(pickupCode)
+      setUploadSuccessDialogOpen(true)
     } catch (err) {
       console.error('上传失败:', err)
       alert(err instanceof Error ? err.message : '上传失败')
@@ -568,6 +590,14 @@ export function FileCanvas() {
         onOpenChange={setPickupCodeDialogOpen}
         file={pendingDownload}
         onSuccess={handlePickupCodeSuccess}
+      />
+
+      {/* 上传成功弹窗 */}
+      <UploadSuccessDialog
+        open={uploadSuccessDialogOpen}
+        onOpenChange={setUploadSuccessDialogOpen}
+        file={uploadedFile}
+        pickupCode={uploadedPickupCode}
       />
     </ContextMenu>
   )

@@ -53,6 +53,7 @@ function initFromUrlParams() {
   const params = new URLSearchParams(window.location.search)
   const server = params.get('server')
   const fileId = params.get('fileId')
+  const code = params.get('code')
 
   if (server) {
     // 保存服务器地址
@@ -69,11 +70,17 @@ function initFromUrlParams() {
     sessionStorage.setItem('t-file-pending-download', fileId)
   }
 
+  if (code) {
+    // 保存取件码到 sessionStorage
+    sessionStorage.setItem('t-file-pending-code', code)
+  }
+
   // 清除 URL 参数
-  if (server || fileId) {
+  if (server || fileId || code) {
     const url = new URL(window.location.href)
     if (server) url.searchParams.delete('server')
     if (fileId) url.searchParams.delete('fileId')
+    if (code) url.searchParams.delete('code')
     window.history.replaceState({}, '', url.toString())
   }
 }
@@ -144,4 +151,14 @@ export function getPendingDownloadId(): string | null {
 // 清除待下载的文件 ID
 export function clearPendingDownloadId(): void {
   sessionStorage.removeItem('t-file-pending-download')
+}
+
+// 获取待下载文件的取件码
+export function getPendingDownloadCode(): string | null {
+  return sessionStorage.getItem('t-file-pending-code')
+}
+
+// 清除待下载文件的取件码
+export function clearPendingDownloadCode(): void {
+  sessionStorage.removeItem('t-file-pending-code')
 }
