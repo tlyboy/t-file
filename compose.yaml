@@ -1,0 +1,6 @@
+services:
+  t-file:
+    build: .
+    restart: unless-stopped
+    ports:
+      - '80:80'
